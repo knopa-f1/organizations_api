@@ -4,7 +4,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.api.schemas.organizations import OrganizationRead, OrganizationDetailRead
-from app.db.models import Organization, Phone, organization_activities, Activity
+from app.db.models import Organization, Phone, organization_activities, Activity, Building
 from app.repositories.base import BaseRepository
 
 
@@ -132,3 +132,19 @@ class OrganizationRepository(BaseRepository):
             detailed_result = await self.session.execute(stmt_details)
             return detailed_result.scalars().all()
         return []
+
+    async def get_in_area(self, min_lat: float, max_lat: float, min_lng: float, max_lng: float):
+        query = (
+            select(Organization)
+            .options(
+                selectinload(Organization.phones),
+                selectinload(Organization.activities),
+            )
+            .join(Organization.building)
+            .where(
+                Building.latitude.between(min_lat, max_lat),
+                Building.longitude.between(min_lng, max_lng)
+            )
+        )
+        result = await self.session.execute(query)
+        return result.scalars().unique().all()

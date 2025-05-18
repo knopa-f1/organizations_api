@@ -48,3 +48,22 @@ async def orgs_by_activity_deep(
     service: OrganizationService = Depends(get_organization_service)
 ):
     return await service.get_organizations_by_activity_deep(activity_id)
+
+@router.get("/in_radius", response_model=list[OrganizationDetailRead])
+async def organizations_in_radius(
+    lat: float = Query(...),
+    lng: float = Query(...),
+    radius: float = Query(...),
+    service: OrganizationService = Depends(get_organization_service)
+):
+    return await service.get_organizations_in_radius(lat, lng, radius)
+
+@router.get("/in_rectangle", response_model=list[OrganizationDetailRead])
+async def organizations_in_rectangle(
+    min_lat: float = Query(...),
+    max_lat: float = Query(...),
+    min_lng: float = Query(...),
+    max_lng: float = Query(...),
+    service: OrganizationService = Depends(get_organization_service)
+):
+    return await service.get_organizations_in_rectangle(min_lat, max_lat, min_lng, max_lng)

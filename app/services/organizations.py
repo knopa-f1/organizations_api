@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+from math import radians, cos
 
 from app.api.schemas.organizations import OrganizationCreate, OrganizationRead, OrganizationDetailRead
 from app.utils.unitofwork import UnitOfWork
@@ -42,6 +43,25 @@ class OrganizationService:
                 raise HTTPException(status_code=404, detail=f"Не удалось найти организацию с name = {name}")
             return org
 
+    async def get_organizations_in_radius(self, center_lat: float, center_lng: float, radius_km: float):
+        lat_km = 111.0
+        lng_km = 111.0 * cos(radians(center_lat))
+
+        delta_lat = radius_km / lat_km
+        delta_lng = radius_km / lng_km
+
+        min_lat = center_lat - delta_lat
+        max_lat = center_lat + delta_lat
+        min_lng = center_lng - delta_lng
+        max_lng = center_lng + delta_lng
+        async with self.uow:
+            orgs = await self.uow.organizations.get_in_area(min_lat, max_lat, min_lng, max_lng)
+            return [org.to_pydantic_model() for org in orgs]
+
+    async def get_organizations_in_rectangle(self, min_lat: float, max_lat: float, min_lng: float, max_lng: float):
+        async with self.uow:
+            orgs = await self.uow.organizations.get_in_area(min_lat, max_lat, min_lng, max_lng)
+            return [org.to_pydantic_model() for org in orgs]
 
 
 

@@ -24,7 +24,6 @@ async def async_engine():
         connect_args={"check_same_thread": False},
     )
     async with engine.begin() as conn:
-        print("Создаем таблицы:", Base.metadata.tables.keys())
         await conn.run_sync(Base.metadata.create_all)
     yield engine
     await engine.dispose()

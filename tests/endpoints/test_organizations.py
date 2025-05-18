@@ -7,19 +7,17 @@ API_KEY = settings.API_KEY
 
 @pytest.mark.anyio
 async def test_create_organization(client: AsyncClient):
-    await client.post("/buildings/",
+    building = await client.post("/buildings/",
                       json={"name": "Tech Park Tower",
                               "address": "ул. Ленина, 1",
                               "latitude": 54.6872,
-                              "longitude": 25.2797
+                              "longitude": 95.2797
                       },
                       headers={"X-API-Key": API_KEY})
-    await client.post("/activities/", json={"name": "IT", 'parent_id':None}, headers={"X-API-Key": API_KEY})
+    activity = await client.post("/activities/", json={"name": "IT", 'parent_id':None}, headers={"X-API-Key": API_KEY})
 
-    buildings = await client.get("/buildings/", headers={"X-API-Key": API_KEY})
-    activities = await client.get("/activities/", headers={"X-API-Key": API_KEY})
-    building_id = buildings.json()[0]["id"]
-    activity_id = activities.json()[0]["id"]
+    building_id = building.json()["id"]
+    activity_id = activity.json()["id"]
 
     response = await client.post(
         "/organizations/",
@@ -85,3 +83,85 @@ async def test_orgs_by_activity_deep(client: AsyncClient):
     assert r.status_code == 200
     names = {org["name"] for org in r.json()}
     assert names == {"МяснаяОрг", "МолочнаяОрг", "ПростоЕда"}
+
+import pytest
+from httpx import AsyncClient
+from app.core.config import settings
+
+API_KEY = settings.API_KEY
+
+@pytest.mark.anyio
+async def test_organizations_in_radius(client: AsyncClient):
+    building = await client.post("/buildings/", json={
+        "name": "Central Office",
+        "address": "Центр города",
+        "latitude": 54.6872,
+        "longitude": 25.2797
+    }, headers={"X-API-Key": API_KEY})
+
+    building_id = building.json()["id"]
+
+    await client.post("/organizations/", json={
+        "name": "Org в радиусе",
+        "building_id": building_id,
+        "phones": [],
+        "activity_ids": []
+    }, headers={"X-API-Key": API_KEY})
+
+    response = await client.get("/organizations/in_radius", params={
+        "lat": 54.6870,
+        "lng": 25.2790,
+        "radius": 1
+    }, headers={"X-API-Key": API_KEY})
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["name"] == "Org в радиусе"
+
+
+@pytest.mark.anyio
+async def test_organizations_in_rectangle(client: AsyncClient):
+    building_1 = await client.post("/buildings/", json={
+        "name": "Внутри прямоугольника",
+        "address": "Пример 1",
+        "latitude": 54.6850,
+        "longitude": 25.2800
+    }, headers={"X-API-Key": API_KEY})
+
+
+    building_2 = await client.post("/buildings/", json={
+        "name": "Снаружи прямоугольника",
+        "address": "Пример 2",
+        "latitude": 54.7000,
+        "longitude": 25.3000
+    }, headers={"X-API-Key": API_KEY})
+
+    inside_id = building_1.json()["id"]
+    outside_id = building_2.json()["id"]
+
+    await client.post("/organizations/", json={
+        "name": "Org Внутри",
+        "building_id": inside_id,
+        "phones": [],
+        "activity_ids": []
+    }, headers={"X-API-Key": API_KEY})
+
+    await client.post("/organizations/", json={
+        "name": "Org Снаружи",
+        "building_id": outside_id,
+        "phones": [],
+        "activity_ids": []
+    }, headers={"X-API-Key": API_KEY})
+
+    response = await client.get("/organizations/in_rectangle", params={
+        "min_lat": 54.6800,
+        "max_lat": 54.6900,
+        "min_lng": 25.2700,
+        "max_lng": 25.2900
+    }, headers={"X-API-Key": API_KEY})
+
+    assert response.status_code == 200
+    data = response.json()
+    names = [org["name"] for org in data]
+    assert "Org Внутри" in names
+    assert "Org Снаружи" not in names
