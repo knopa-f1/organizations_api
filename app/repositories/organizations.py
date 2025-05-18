@@ -35,6 +35,16 @@ class OrganizationRepository(BaseRepository):
         )
 
         await self.session.flush()
+        org = (
+            await self.session.execute(
+                select(Organization)
+                .options(
+                    selectinload(Organization.phones),
+                    selectinload(Organization.activities),
+                )
+                .where(Organization.id == org.id)
+            )
+        ).scalar_one()
         return org.to_pydantic_model()
 
     async def get_by_id(self, organization_id: int) -> OrganizationDetailRead | None:
@@ -86,7 +96,7 @@ class OrganizationRepository(BaseRepository):
     async def get_by_activity_with_subtree(self, activity_id: int) -> list[Organization]:
         stmt = text("""
                     SELECT organization_id
-                    FROM public.organization_activities
+                    FROM organization_activities
                     WHERE activity_id IN (
                         SELECT act.id
                         FROM activity AS act
