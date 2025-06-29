@@ -29,15 +29,5 @@ services:
       - db
     command: bash -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
 
-#  seed:
-#    build: .
-#    command: >
-#      sh -c "alembic upgrade head &&
-#             alembic upgrade seed@head"
-#    depends_on:
-#      - db
-#    env_file:
-#      - .env
-
 volumes:
   postgres_data:

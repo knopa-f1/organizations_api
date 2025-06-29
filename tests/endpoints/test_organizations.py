@@ -42,7 +42,7 @@ async def test_search_organization_by_id(client: AsyncClient):
     assert len(all_orgs.json()) == 1
     org_id = all_orgs.json()[0]["id"]
 
-    response = await client.get(f"/organizations/search?id={org_id}", headers={"X-API-Key": API_KEY})
+    response = await client.get(f"/organizations/search?org_id={org_id}", headers={"X-API-Key": API_KEY})
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == org_id

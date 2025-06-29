@@ -10,6 +10,8 @@ from typing import Sequence, Union
 from alembic import op
 
 from sqlalchemy.orm import Session
+
+from app.core.config import settings
 from app.db.models import Activity, Building, Organization, Phone
 
 # revision identifiers, used by Alembic.
@@ -20,6 +22,9 @@ depends_on: Union[str, Sequence[str], None] = '70c0605267a5'
 
 
 def upgrade():
+    if settings.MODE != "TEST":
+        return
+
     bind = op.get_bind()
     session = Session(bind=bind)
 
